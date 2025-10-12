@@ -1,5 +1,5 @@
 # JailBreakBW
-Script:
+Script:```loadstring(game:HttpGet("https://raw.githubusercontent.com/Antam71/JailBreakBW/refs/heads/main/Main"))()```
 
 #HOW TO OPERATE
 Q=Fly
