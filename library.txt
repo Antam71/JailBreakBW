@@ -1,0 +1,243 @@
+local players = game:GetService("Players")
+local l_player = players.LocalPlayer
+local uis = game:GetService("UserInputService")
+local ts = game:GetService("TweenService")
+local light = game:GetService("Lighting")
+
+local library = {}
+
+-- Utility for hover/click effects
+local function apply_fx(obj, target_col, original_col)
+    obj.MouseEnter:Connect(function()
+        ts:Create(obj, TweenInfo.new(0.3), {BackgroundColor3 = target_col}):Play()
+    end)
+    obj.MouseLeave:Connect(function()
+        ts:Create(obj, TweenInfo.new(0.3), {BackgroundColor3 = original_col}):Play()
+    end)
+end
+
+function library:CreateWindow(lib_title)
+    local core = {
+        tabs = {},
+        current_tab = nil,
+        accent = Color3.fromRGB(140, 80, 255)
+    }
+
+    -- Main Setup
+    local gui = Instance.new("ScreenGui", l_player.PlayerGui)
+    gui.Name = "Framework_UI"
+    gui.IgnoreGuiInset = true
+
+    local blur = Instance.new("BlurEffect", light)
+    blur.Size = 0
+    blur.Enabled = false
+
+    local main = Instance.new("Frame", gui)
+    main.Size = UDim2.new(0, 520, 0, 400)
+    main.Position = UDim2.new(0.5, -260, 0.5, -200)
+    main.BackgroundColor3 = Color3.fromRGB(10, 8, 15)
+    main.BorderSizePixel = 0
+    main.Visible = false
+
+    Instance.new("UICorner", main).CornerRadius = UDim.new(0, 10)
+    local stroke = Instance.new("UIStroke", main)
+    stroke.Color = core.accent
+    stroke.Thickness = 1.5
+    stroke.Transparency = 0.5
+
+    local title_lbl = Instance.new("TextLabel", main)
+    title_lbl.Size = UDim2.new(0, 200, 0, 50)
+    title_lbl.Position = UDim2.new(0, 20, 0, 5)
+    title_lbl.Text = lib_title:upper()
+    title_lbl.Font = Enum.Font.GothamBold
+    title_lbl.TextColor3 = core.accent
+    title_lbl.TextSize = 20
+    title_lbl.BackgroundTransparency = 1
+    title_lbl.TextXAlignment = "Left"
+
+    local sidebar = Instance.new("Frame", main)
+    sidebar.Size = UDim2.new(0, 130, 1, -70)
+    sidebar.Position = UDim2.new(0, 15, 0, 55)
+    sidebar.BackgroundTransparency = 1
+
+    local s_layout = Instance.new("UIListLayout", sidebar)
+    s_layout.Padding = UDim.new(0, 6)
+
+    local container = Instance.new("Frame", main)
+    container.Size = UDim2.new(1, -170, 1, -70)
+    container.Position = UDim2.new(0, 155, 0, 55)
+    container.BackgroundTransparency = 1
+
+    -- Toggle Menu
+    uis.InputBegan:Connect(function(key, gpe)
+        if not gpe and key.KeyCode == Enum.KeyCode.LeftAlt then
+            local state = not main.Visible
+            main.Visible = state
+            blur.Enabled = state
+            if state then
+                main.Size = UDim2.new(0, 0, 0, 0)
+                ts:Create(main, TweenInfo.new(0.5, Enum.EasingStyle.Back), {Size = UDim2.new(0, 520, 0, 400)}):Play()
+                ts:Create(blur, TweenInfo.new(0.4), {Size = 20}):Play()
+            else
+                ts:Create(blur, TweenInfo.new(0.2), {Size = 0}):Play()
+            end
+        end
+    end)
+
+    function core:CreateTab(name)
+        local tab_btn = Instance.new("TextButton", sidebar)
+        tab_btn.Size = UDim2.new(1, 0, 0, 35)
+        tab_btn.BackgroundColor3 = Color3.fromRGB(20, 15, 30)
+        tab_btn.Text = name
+        tab_btn.Font = Enum.Font.GothamSemibold
+        tab_btn.TextColor3 = Color3.fromRGB(150, 150, 160)
+        tab_btn.TextSize = 12
+        Instance.new("UICorner", tab_btn).CornerRadius = UDim.new(0, 6)
+        apply_fx(tab_btn, Color3.fromRGB(35, 25, 55), Color3.fromRGB(20, 15, 30))
+
+        local page = Instance.new("ScrollingFrame", container)
+        page.Size = UDim2.new(1, 0, 1, 0)
+        page.BackgroundTransparency = 1
+        page.Visible = false
+        page.ScrollBarThickness = 0
+        page.CanvasSize = UDim2.new(0, 0, 0, 0)
+        page.AutomaticCanvasSize = "Y"
+
+        local p_layout = Instance.new("UIListLayout", page)
+        p_layout.Padding = UDim.new(0, 8)
+
+        tab_btn.MouseButton1Click:Connect(function()
+            for _, v in pairs(container:GetChildren()) do v.Visible = false end
+            for _, v in pairs(sidebar:GetChildren()) do 
+                if v:IsA("TextButton") then ts:Create(v, TweenInfo.new(0.2), {TextColor3 = Color3.fromRGB(150, 150, 160)}):Play() end
+            end
+            page.Visible = true
+            ts:Create(tab_btn, TweenInfo.new(0.2), {TextColor3 = core.accent}):Play()
+        end)
+
+        local tab_content = {}
+
+        function tab_content:AddToggle(text, callback)
+            local state = false
+            local t_btn = Instance.new("TextButton", page)
+            t_btn.Size = UDim2.new(1, -10, 0, 38)
+            t_btn.BackgroundColor3 = Color3.fromRGB(22, 18, 30)
+            t_btn.Text = "  " .. text
+            t_btn.Font = Enum.Font.Gotham
+            t_btn.TextColor3 = Color3.fromRGB(160, 160, 170)
+            t_btn.TextSize = 13
+            t_btn.TextXAlignment = "Left"
+            Instance.new("UICorner", t_btn).CornerRadius = UDim.new(0, 6)
+
+            t_btn.MouseButton1Click:Connect(function()
+                state = not state
+                ts:Create(t_btn, TweenInfo.new(0.2), {TextColor3 = state and core.accent or Color3.fromRGB(160, 160, 170)}):Play()
+                callback(state)
+            end)
+        end
+
+        function tab_content:AddSlider(text, min, max, default, callback)
+            local s_frame = Instance.new("Frame", page)
+            s_frame.Size = UDim2.new(1, -10, 0, 45)
+            s_frame.BackgroundColor3 = Color3.fromRGB(22, 18, 30)
+            Instance.new("UICorner", s_frame).CornerRadius = UDim.new(0, 6)
+
+            local lbl = Instance.new("TextLabel", s_frame)
+            lbl.Size = UDim2.new(1, -20, 0, 25)
+            lbl.Position = UDim2.new(0, 10, 0, 0)
+            lbl.Text = text .. ": " .. default
+            lbl.Font = Enum.Font.Gotham
+            lbl.TextColor3 = Color3.fromRGB(200, 200, 200)
+            lbl.TextSize = 12
+            lbl.BackgroundTransparency = 1
+            lbl.TextXAlignment = "Left"
+
+            local bar = Instance.new("Frame", s_frame)
+            bar.Size = UDim2.new(1, -20, 0, 4)
+            bar.Position = UDim2.new(0, 10, 0, 32)
+            bar.BackgroundColor3 = Color3.fromRGB(40, 35, 55)
+            Instance.new("UICorner", bar)
+
+            local fill = Instance.new("Frame", bar)
+            fill.Size = UDim2.new((default-min)/(max-min), 0, 1, 0)
+            fill.BackgroundColor3 = core.accent
+            Instance.new("UICorner", fill)
+
+            s_frame.InputBegan:Connect(function(input)
+                if input.UserInputType == Enum.UserInputType.MouseButton1 then
+                    local move = uis.InputChanged:Connect(function(input)
+                        if input.UserInputType == Enum.UserInputType.MouseMovement then
+                            local scale = math.clamp((input.Position.X - bar.AbsolutePosition.X) / bar.AbsoluteSize.X, 0, 1)
+                            local value = math.floor(min + (scale * (max - min)))
+                            fill.Size = UDim2.new(scale, 0, 1, 0)
+                            lbl.Text = text .. ": " .. value
+                            callback(value)
+                        end
+                    end)
+                    local end_con; end_con = uis.InputEnded:Connect(function(input)
+                        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+                            move:Disconnect()
+                            end_con:Disconnect()
+                        end
+                    end)
+                end
+            end)
+        end
+
+        function tab_content:AddDropdown(text, options, callback)
+            local d_frame = Instance.new("Frame", page)
+            d_frame.Size = UDim2.new(1, -10, 0, 38)
+            d_frame.BackgroundColor3 = Color3.fromRGB(22, 18, 30)
+            d_frame.ClipsDescendants = true
+            Instance.new("UICorner", d_frame)
+
+            local d_btn = Instance.new("TextButton", d_frame)
+            d_btn.Size = UDim2.new(1, 0, 0, 38)
+            d_btn.BackgroundTransparency = 1
+            d_btn.Text = "  " .. text
+            d_btn.Font = Enum.Font.Gotham
+            d_btn.TextColor3 = core.accent
+            d_btn.TextSize = 13
+            d_btn.TextXAlignment = "Left"
+
+            local d_layout = Instance.new("UIListLayout", d_frame)
+            d_layout.Padding = UDim.new(0, 2)
+
+            local is_open = false
+            d_btn.MouseButton1Click:Connect(function()
+                is_open = not is_open
+                ts:Create(d_frame, TweenInfo.new(0.4, Enum.EasingStyle.Quart), {Size = is_open and UDim2.new(1, -10, 0, 38 + (#options * 30)) or UDim2.new(1, -10, 0, 38)}):Play()
+            end)
+
+            for _, opt in pairs(options) do
+                local o_btn = Instance.new("TextButton", d_frame)
+                o_btn.Size = UDim2.new(1, 0, 0, 28)
+                o_btn.BackgroundColor3 = Color3.fromRGB(30, 25, 45)
+                o_btn.BorderSizePixel = 0
+                o_btn.Text = opt
+                o_btn.Font = Enum.Font.Gotham
+                o_btn.TextColor3 = Color3.fromRGB(180, 180, 190)
+                o_btn.TextSize = 12
+                o_btn.MouseButton1Click:Connect(function()
+                    d_btn.Text = "  " .. text .. ": " .. opt
+                    is_open = false
+                    ts:Create(d_frame, TweenInfo.new(0.3), {Size = UDim2.new(1, -10, 0, 38)}):Play()
+                    callback(opt)
+                end)
+            end
+        end
+
+        return tab_content
+    end
+
+    return core
+end
+
+-- USAGE EXAMPLE:
+-- local window = library:CreateWindow("Project Azali")
+-- local main_tab = window:CreateTab("General")
+-- main_tab:AddToggle("Feature One", function(s) print(s) end)
+-- main_tab:AddSlider("Value", 0, 100, 50, function(v) print(v) end)
+-- main_tab:AddDropdown("Select Mode", {"Mode A", "Mode B"}, function(v) print(v) end)
+
+return library
